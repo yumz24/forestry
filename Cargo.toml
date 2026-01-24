@@ -4,3 +4,25 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# 引数解析 (derive機能を使用)
+clap = { version = "4.5", features = ["derive"] }
+
+# 設定ファイルのパース
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+
+# エディタ連携
+edit = "0.1"
+
+# ロギング
+log = "0.4"
+env_logger = "0.11"
+
+# ユーザー確認 (y/N)
+dialoguer = "0.11"
+
+# エラー処理の簡略化
+anyhow = "1.0"
+
+# パス・ファイル操作の補助
+path-clean = "1.0"
