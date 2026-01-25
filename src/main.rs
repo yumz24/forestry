@@ -1,9 +1,9 @@
 mod cli;
 mod editor;
 
+use anyhow::Result;
 use clap::Parser;
 use cli::Args;
-use anyhow::Result;
 
 fn main() -> Result<()> {
     let _args = Args::parse();
