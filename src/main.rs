@@ -8,7 +8,6 @@ use clap::Parser;
 
 fn main() -> Result<()> {
     let _args = cli::Args::parse();
-
     let input = editor::capture_input_from_editor()?;
 
     if input.trim().is_empty() {
@@ -19,6 +18,7 @@ fn main() -> Result<()> {
     let nodes = parser::parse_input(&input);
 
     for node in nodes {
+        // 解決されたパスを表示(確認用)
         println!(
             "{:?}: depth={}, name={}",
             node.node_type, node.depth, node.name

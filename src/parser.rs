@@ -1,31 +1,54 @@
 use crate::node::{Node, NodeType};
+use std::path::PathBuf;
 
 pub fn parse_input(input: &str) -> Vec<Node> {
-    input
-        .lines()
-        .filter(|line| !line.trim().is_empty() && !line.trim().starts_with("#"))
-        .filter_map(|line| {
-            // 1. 罫線文字の除去
-            let clean_line = line
-                .replace('│', "")
-                .replace('├', "")
-                .replace('└', "")
-                .replace('─', "");
-            // 2. インデントの深さの計算(スペース2つを1単位として仮定 - TODO: 自動指定に強化するかも
-            let trimmed = clean_line.trim_start();
-            let indent_size = clean_line.len() - trimmed.len();
-            let depth = indent_size / 2;
+    let mut nodes = Vec::new();
+    let mut stack: Vec<(usize, PathBuf)> = Vec::new(); // (depth, current_path)
 
-            // 3. ディレクトリかファイルかの判定
-            let is_dir = trimmed.ends_with('/');
-            let name = trimmed.trim_end_matches('/').to_string();
-            let node_type = if is_dir {
-                NodeType::Directory
+    for line in input.lines() {
+        // 1. クリーニングとスキップ判定
+        if line.trim().is_empty() || line.trim().starts_with('#') {
+            continue;
+        }
+
+        let clean_line = line
+            .replace('│', "")
+            .replace('├', "")
+            .replace('└', "")
+            .replace('─', "");
+
+        let trimmed = clean_line.trim_start();
+        let indent_size = clean_line.len() - trimmed.len();
+        let depth = indent_size / 2;
+
+        let is_dir = trimmed.ends_with('/');
+        let name = trimmed.trim_end_matches('/').to_string();
+        let node_type = if is_dir { NodeType::Directory } else { NodeType::File };
+
+        // 2. パス解決ロジック (ディレクトリスタック)
+        while let Some((stack_depth, _)) = stack.last() {
+            if *stack_depth >= depth {
+                stack.pop();
             } else {
-                NodeType::File
-            };
+                break;
+            }
+        }
 
-            Some(Node::new(name, depth, node_type))
-        })
-        .collect()
+        let mut current_path = if let Some((_, parent_path)) = stack.last() {
+            parent_path.clone()
+        } else {
+            PathBuf::new()
+        };
+        current_path.push(&name);
+
+        let mut node = Node::new(name.clone(), depth, node_type);
+        node.path = current_path.clone(); // ここで path を使用するため警告が消えます
+
+        if let NodeType::Directory = node.node_type {
+            stack.push((depth, current_path));
+        }
+
+        nodes.push(node);
+    }
+    nodes
 }
