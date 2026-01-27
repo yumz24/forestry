@@ -46,7 +46,7 @@ pub fn parse_input(input: &str) -> Vec<Node> {
         current_path.push(&name);
 
         let mut node = Node::new(name.clone(), depth, node_type);
-        node.path = current_path.clone(); // ここで path を使用するため警告が消えます
+        node.path = current_path.clone();
 
         if let NodeType::Directory = node.node_type {
             stack.push((depth, current_path));
