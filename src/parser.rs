@@ -23,7 +23,11 @@ pub fn parse_input(input: &str) -> Vec<Node> {
 
         let is_dir = trimmed.ends_with('/');
         let name = trimmed.trim_end_matches('/').to_string();
-        let node_type = if is_dir { NodeType::Directory } else { NodeType::File };
+        let node_type = if is_dir {
+            NodeType::Directory
+        } else {
+            NodeType::File
+        };
 
         // 2. パス解決ロジック (ディレクトリスタック)
         while let Some((stack_depth, _)) = stack.last() {
