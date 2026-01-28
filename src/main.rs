@@ -1,5 +1,6 @@
 mod cli;
 mod editor;
+mod generator;
 mod node;
 mod parser;
 
@@ -22,7 +23,7 @@ fn main() -> Result<()> {
 
     // プレビュー表示
     println!("\n以下の構成で作成を開始します");
-    for node in nodes {
+    for node in &nodes {
         let prefix = " ".repeat(node.depth);
         let icon = if let node::NodeType::Directory = node.node_type {
             "📁"
@@ -49,8 +50,8 @@ fn main() -> Result<()> {
         }
     }
 
-    println!("作成を開始します...");
-    // TODO: 生成ロジック呼び出し
+    generator::generate(&nodes)?;
 
+    println!("\nすべての処理が完了しました。🌲");
     Ok(())
 }
