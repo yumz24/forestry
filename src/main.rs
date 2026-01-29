@@ -1,4 +1,5 @@
 mod cli;
+mod config;
 mod editor;
 mod generator;
 mod node;
@@ -7,10 +8,13 @@ mod parser;
 use anyhow::Result;
 use clap::Parser;
 use cli::Args;
+use config::Config;
 use dialoguer::Confirm;
 
 fn main() -> Result<()> {
     let args = Args::parse();
+    let _config = Config::load();
+
     let input = editor::capture_input_from_editor()?;
 
     if input.trim().is_empty() {
