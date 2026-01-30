@@ -22,12 +22,20 @@ pub fn parse_input(input: &str) -> Vec<Node> {
         let depth = indent_size / 2;
 
         let is_dir = trimmed.ends_with('/');
-        let name = trimmed.trim_end_matches('/').to_string();
-        let node_type = if is_dir {
-            NodeType::Directory
+
+        // シンボリックリンクの判定
+        let node_type = if trimmed.contains("->") {
+            let parts: Vec<&str> = trimmed.split("->").map(|s| s.trim()).collect();
+            let name = parts[0].to_string();
+            let target = parts.get(1).unwrap_or(&"").to_string();
+            (name, NodeType::Symlink { target })
         } else {
-            NodeType::File
+            let name = trimmed.trim_end_matches('/').to_string();
+            let n_type = if is_dir { NodeType::Directory } else { NodeType::File };
+            (name, n_type)
         };
+
+        let (name, node_type) = node_type;
 
         // 2. パス解決ロジック (ディレクトリスタック)
         while let Some((stack_depth, _)) = stack.last() {
