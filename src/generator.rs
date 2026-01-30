@@ -1,13 +1,13 @@
 use crate::node::{Node, NodeType};
 use anyhow::{Context, Result};
 use std::fs;
+use std::os::unix::fs as unix_fs;
 
 /// Nodeのリストから実際のディレクトリとファイルを生成する
 pub fn generate(nodes: &[Node]) -> Result<()> {
     for node in nodes {
-        match node.node_type {
+        match &node.node_type {
             NodeType::Directory => {
-                // ディレクトリの作成
                 fs::create_dir_all(&node.path).with_context(|| {
                     format!("ディレクトリの作成に失敗しました: {:?}", node.path)
                 })?;
@@ -29,6 +29,13 @@ pub fn generate(nodes: &[Node]) -> Result<()> {
                     println!("EXISTS (SKIPPED): {}", node.path.display());
                 }
             }
+            NodeType::Symlink { target } => {
+                if !node.path.exists() {
+                    unix_fs::symlink(target, &node.path)
+                        .with_context(|| format!("リンク作成失敗: {:?} -> {}", node.path, target))?;
+                    println!("CREATED LINK: {} -> {}", node.path.display(), target);
+                }
+            } 
         }
     }
     Ok(())
