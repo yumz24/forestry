@@ -10,9 +10,16 @@ use clap::Parser;
 use cli::Args;
 use config::Config;
 use dialoguer::Confirm;
+use log::{debug, info, warn};
 
 fn main() -> Result<()> {
     let args = Args::parse();
+
+    // ロガーの初期化(RUST_LOG環境変数または引数のlog_levelを使用)
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(&args.log_level))
+        .format_timestamp(None)
+        .init();
+
     let _config = Config::load();
 
     let input = editor::capture_input_from_editor()?;
@@ -29,16 +36,16 @@ fn main() -> Result<()> {
     println!("\n以下の構成で作成を開始します");
     for node in &nodes {
         let prefix = " ".repeat(node.depth);
-        let icon = if let node::NodeType::Directory = node.node_type {
-            "📁"
-        } else {
-            "📄"
+        let icon = match &node.node_type {
+            node::NodeType::Directory => "📁",
+            node::NodeType::File => "📄",
+            node::NodeType::Symlink { .. } => "🔗",
         };
         println!("{} {} {}", prefix, icon, node.name);
     }
 
     if args.dry_run {
-        println!("\n[Dry-run] 実際には作成されません。");
+        info!("\n[Dry-run] 実際には作成されません。");
         return Ok(());
     }
 
@@ -49,13 +56,13 @@ fn main() -> Result<()> {
             .interact()?;
 
         if !confirmation {
-            println!("キャンセルされました。");
+            info!("キャンセルされました。");
             return Ok(());
         }
     }
 
     generator::generate(&nodes)?;
 
-    println!("\nすべての処理が完了しました。🌲");
+    info!("\nすべての処理が完了しました。🌲");
     Ok(())
 }

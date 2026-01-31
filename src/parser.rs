@@ -31,7 +31,11 @@ pub fn parse_input(input: &str) -> Vec<Node> {
             (name, NodeType::Symlink { target })
         } else {
             let name = trimmed.trim_end_matches('/').to_string();
-            let n_type = if is_dir { NodeType::Directory } else { NodeType::File };
+            let n_type = if is_dir {
+                NodeType::Directory
+            } else {
+                NodeType::File
+            };
             (name, n_type)
         };
 
