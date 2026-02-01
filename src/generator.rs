@@ -1,8 +1,8 @@
 use crate::node::{Node, NodeType};
 use anyhow::{Context, Result};
+use log::info;
 use std::fs;
 use std::os::unix::fs as unix_fs;
-use log::info;
 
 /// Nodeのリストから実際のディレクトリとファイルを生成する
 pub fn generate(nodes: &[Node]) -> Result<()> {
