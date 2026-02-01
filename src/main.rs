@@ -32,6 +32,13 @@ fn main() -> Result<()> {
     // パース実行
     let nodes = parser::parse_input(&input);
 
+    if nodes.is_empty() {
+        info!("有効なディレクトリ構造が見つからなかったため、終了します。");
+        return Ok(());
+    }
+
+    debug!("Parsed {} nodes", nodes.len());
+
     // プレビュー表示
     println!("\n以下の構成で作成を開始します");
     for node in &nodes {
