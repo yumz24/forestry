@@ -8,19 +8,25 @@ mod parser;
 use anyhow::Result;
 use clap::Parser;
 use cli::Args;
-use config::Config;
 use dialoguer::Confirm;
-use log::{debug, info, warn};
+use log::{debug, info};
 
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    // ロガーの初期化(RUST_LOG環境変数または引数のlog_levelを使用)
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(&args.log_level))
+    // 設定ファイルの読み込み( 引数でパスが指定されていればそれを使用する )
+    let config = config::Config::load(args.config.clone());
+
+    // ログレベルの設定( 引数 > 設定ファイル > デフォルト"info" )
+    let log_level = if args.log_level != "info" {
+        args.log_level.clone()
+    } else {
+        config.log_level.unwrap_or_else(|| "info".to_string())
+    };
+
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(&log_level))
         .format_timestamp(None)
         .init();
-
-    let _config = Config::load();
 
     let input = editor::capture_input_from_editor()?;
 
@@ -56,7 +62,9 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    if !args.yes {
+    let skip_confirm = args.yes || config.default_yes.unwrap_or(false);
+
+    if !skip_confirm {
         let confirmation = Confirm::new()
             .with_prompt("ファイルを作成してもよろしいですか?")
             .default(true)
@@ -69,7 +77,6 @@ fn main() -> Result<()> {
     }
 
     generator::generate(&nodes)?;
-
     info!("\nすべての処理が完了しました。🌲");
     Ok(())
 }
