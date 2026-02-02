@@ -11,7 +11,8 @@ pub struct Config {
 impl Config {
     pub fn load(path: Option<String>) -> Self {
         // 引数で指定されたパス、またはデフォルトの .forestry.toml を探す
-        let config_path = path.map(PathBuf::from)
+        let config_path = path
+            .map(PathBuf::from)
             .unwrap_or_else(|| PathBuf::from(".forestry.toml"));
 
         if let Ok(content) = fs::read_to_string(config_path) {
@@ -19,5 +20,4 @@ impl Config {
         }
         Self::default()
     }
-
 }
