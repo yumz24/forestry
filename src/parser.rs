@@ -4,6 +4,7 @@ use std::path::PathBuf;
 pub fn parse_input(input: &str) -> Vec<Node> {
     let mut nodes = Vec::new();
     let mut stack: Vec<(usize, PathBuf)> = Vec::new(); // (depth, current_path)
+    let mut indent_unit = None; // 1レベルあたりのインデント幅を保持
 
     for line in input.lines() {
         // 1. クリーニングとスキップ判定
@@ -11,6 +12,7 @@ pub fn parse_input(input: &str) -> Vec<Node> {
             continue;
         }
 
+        // 罫線の除去
         let clean_line = line
             .replace('│', "")
             .replace('├', "")
@@ -18,8 +20,18 @@ pub fn parse_input(input: &str) -> Vec<Node> {
             .replace('─', "");
 
         let trimmed = clean_line.trim_start();
-        let indent_size = clean_line.len() - trimmed.len();
-        let depth = indent_size / 2;
+        let indent_len = clean_line.len() - trimmed.len();
+
+        // インデント幅の自動推定ロジック
+        if indent_unit.is_none() && indent_len > 0 {
+            indent_unit = Some(indent_len);
+        }
+
+        // 1レベルあたりの幅がわかれば割る、わからなければ0 ( トップレベル )
+        let depth = match indent_unit {
+            Some(unit) if unit > 0 => indent_len / unit,
+            _ => 0,
+        };
 
         let is_dir = trimmed.ends_with('/');
 
