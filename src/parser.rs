@@ -8,21 +8,31 @@ pub fn parse_input(input: &str) -> Vec<Node> {
         .collect();
 
     let mut nodes: Vec<Node> = Vec::new();
-    let mut indent_map: std::collections::HashMap<usize, usize> = std::collections::HashMap::new();
+    // (インデントの実際の長さ, 深さレベル) を管理するスタック
+    let mut indent_levels = vec![0]; 
+    let mut path_stack: Vec<(usize, PathBuf)> = Vec::new();
+
     let mut iter = lines.iter().enumerate().peekable();
 
     while let Some((_, line)) = iter.next() {
         let clean_line = line
-            .replace('│', "")
-            .replace('├', "")
-            .replace('└', "")
-            .replace('─', "");
-        let raw_indent = clean_line.len() - clean_line.trim_start().len();
-
-        // 1. 前後の一般的な空白を除去
+            .replace('│', "").replace('├', "").replace('└', "").replace('─', "");
+        
+        // 実際のインデントの「長さ」を取得
+        let raw_indent_len = clean_line.len() - clean_line.trim_start().len();
         let temp_content = clean_line.trim();
-        // 2. 「名前/ 空白」のようなケースに対応するため、最初のスラッシュで分割
-        // (シンボリックリンク "->" が含まれない場合のみ適用)
+
+        // --- インデント深さの判定 (スタック比較方式) ---
+        if raw_indent_len > *indent_levels.last().unwrap() {
+            indent_levels.push(raw_indent_len);
+        } else {
+            while raw_indent_len < *indent_levels.last().unwrap() && indent_levels.len() > 1 {
+                indent_levels.pop();
+            }
+        }
+        let depth = indent_levels.len() - 1;
+
+        // --- ディレクトリ判定と名前抽出 ---
         let (content, is_explicit_dir) =
             if !temp_content.contains("->") && temp_content.contains('/') {
                 let base = temp_content.split('/').next().unwrap_or("").trim();
@@ -31,33 +41,15 @@ pub fn parse_input(input: &str) -> Vec<Node> {
                 (temp_content.to_string(), temp_content.ends_with('/'))
             };
 
-        // インデント正規化
-        let mut sorted_indents: Vec<usize> = indent_map.keys().cloned().collect();
-        sorted_indents.sort();
-        let depth = if raw_indent == 0 {
-            0
-        } else if let Some(d) = indent_map.get(&raw_indent) {
-            *d
-        } else {
-            let new_depth = sorted_indents.len();
-            indent_map.insert(raw_indent, new_depth);
-            new_depth
-        };
-
         let mut has_children = false;
         if let Some((_, next_line)) = iter.peek() {
-            let next_clean = next_line
-                .replace('│', "")
-                .replace('├', "")
-                .replace('└', "")
-                .replace('─', "");
+            let next_clean = next_line.replace('│', "").replace('├', "").replace('└', "").replace('─', "");
             let next_raw_indent = next_clean.len() - next_clean.trim_start().len();
-            if next_raw_indent > raw_indent {
+            if next_raw_indent > raw_indent_len {
                 has_children = true;
             }
         }
 
-        // 名前の確定と型判定
         let (name, node_type) = if content.contains("->") {
             let parts: Vec<&str> = content.split("->").map(|s| s.trim()).collect();
             let n = parts[0].trim_end_matches('/').trim().to_string();
@@ -69,23 +61,34 @@ pub fn parse_input(input: &str) -> Vec<Node> {
             } else {
                 NodeType::File
             };
-            (content.clone(), n_type)
+            (content, n_type)
         };
 
-        let mut path = PathBuf::new();
-        for prev in nodes.iter().rev() {
-            if prev.depth < depth {
-                path = prev.path.clone();
+        // --- パス解決 ---
+        while let Some((d, _)) = path_stack.last() {
+            if *d >= depth {
+                path_stack.pop();
+            } else {
                 break;
             }
         }
-        path.push(&name);
+
+        let mut full_path = if let Some((_, parent_path)) = path_stack.last() {
+            parent_path.clone()
+        } else {
+            PathBuf::new()
+        };
+        full_path.push(&name);
+
+        if let NodeType::Directory = node_type {
+            path_stack.push((depth, full_path.clone()));
+        }
 
         nodes.push(Node {
             name,
             depth,
             node_type,
-            path,
+            path: full_path,
         });
     }
     nodes

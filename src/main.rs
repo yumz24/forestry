@@ -47,6 +47,7 @@ fn main() -> Result<()> {
 
     // プレビュー表示
     println!("\n以下の構成で作成を開始します");
+    println!("{:?}", nodes);
     for node in &nodes {
         let prefix = " ".repeat(node.depth);
         let icon = match &node.node_type {
