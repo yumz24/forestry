@@ -21,7 +21,7 @@ fn main() -> Result<()> {
     let log_level = if args.log_level != "info" {
         args.log_level.clone()
     } else {
-        config.log_level.unwrap_or_else(|| "info".to_string())
+        config.log_level.clone().unwrap_or_else(|| "info".to_string())
     };
 
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(&log_level))
@@ -47,7 +47,6 @@ fn main() -> Result<()> {
 
     // プレビュー表示
     println!("\n以下の構成で作成を開始します");
-    println!("{:?}", nodes);
     for node in &nodes {
         let prefix = " ".repeat(node.depth);
         let icon = match &node.node_type {
@@ -77,7 +76,8 @@ fn main() -> Result<()> {
         }
     }
 
-    generator::generate(&nodes)?;
+    generator::generate(&nodes, &config)?;
+
     info!("\nすべての処理が完了しました。🌲");
     Ok(())
 }

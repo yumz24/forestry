@@ -1,0 +1,27 @@
+# すでにファイルがある場合に上書きするかどうか
+overwrite = false
+
+# 質問に対してデフォルトで yes と回答するか (Dialoguerの挙動に関わります)
+default_yes = false
+
+# ログレベル (error, warn, info, debug, trace)
+log_level = "info"
+
+# プロジェクト名 (テンプレートの ${PROJECT_NAME} に使われます)
+project_name = "My Rust Project"
+
+# 無視するファイル・フォルダのパターン
+ignore_patterns = [".git", "node_modules", "target"]
+
+# 拡張子ごとのテンプレート設定
+[templates]
+rs = """
+// Created on ${DATE}
+// Project: ${PROJECT_NAME}
+
+fn main() {
+    println!("Hello, forestry!");
+}
+"""
+py = "# Created on ${DATE}\n\ndef main():\n    print('Hello')"
+md = "# ${PROJECT_NAME}\n\nCreated at: ${DATE}"
