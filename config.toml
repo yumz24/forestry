@@ -1,0 +1,11 @@
+overwrite = false
+default_yes = false
+
+[templates]
+rs = """
+fn main() {
+    println!("Hello, world!");
+}
+"""
+py = "if __name__ == '__main__':\n    main()"
+md = "# Project Name\n\nDescription here."
