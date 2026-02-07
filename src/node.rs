@@ -14,14 +14,3 @@ pub struct Node {
     pub node_type: NodeType,
     pub path: PathBuf,
 }
-
-impl Node {
-    pub fn new(name: String, depth: usize, node_type: NodeType) -> Self {
-        Self {
-            name,
-            depth,
-            node_type,
-            path: PathBuf::new(),
-        }
-    }
-}

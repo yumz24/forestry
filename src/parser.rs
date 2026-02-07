@@ -2,81 +2,94 @@ use crate::node::{Node, NodeType};
 use std::path::PathBuf;
 
 pub fn parse_input(input: &str) -> Vec<Node> {
-    let mut nodes = Vec::new();
-    let mut stack: Vec<(usize, PathBuf)> = Vec::new(); // (depth, current_path)
-    let mut indent_unit = None; // 1レベルあたりのインデント幅を保持
+    let lines: Vec<&str> = input
+        .lines()
+        .filter(|l| !l.trim().is_empty() && !l.trim().starts_with('#'))
+        .collect();
 
-    for line in input.lines() {
-        // 1. クリーニングとスキップ判定
-        if line.trim().is_empty() || line.trim().starts_with('#') {
-            continue;
-        }
+    let mut nodes: Vec<Node> = Vec::new();
+    // (インデントの実際の長さ, 深さレベル) を管理するスタック
+    let mut indent_levels = vec![0]; 
+    let mut path_stack: Vec<(usize, PathBuf)> = Vec::new();
 
-        // 罫線の除去
+    let mut iter = lines.iter().enumerate().peekable();
+
+    while let Some((_, line)) = iter.next() {
         let clean_line = line
-            .replace('│', "")
-            .replace('├', "")
-            .replace('└', "")
-            .replace('─', "");
+            .replace('│', "").replace('├', "").replace('└', "").replace('─', "");
+        
+        // 実際のインデントの「長さ」を取得
+        let raw_indent_len = clean_line.len() - clean_line.trim_start().len();
+        let temp_content = clean_line.trim();
 
-        let trimmed = clean_line.trim_start();
-        let indent_len = clean_line.len() - trimmed.len();
+        // --- インデント深さの判定 (スタック比較方式) ---
+        if raw_indent_len > *indent_levels.last().unwrap() {
+            indent_levels.push(raw_indent_len);
+        } else {
+            while raw_indent_len < *indent_levels.last().unwrap() && indent_levels.len() > 1 {
+                indent_levels.pop();
+            }
+        }
+        let depth = indent_levels.len() - 1;
 
-        // インデント幅の自動推定ロジック
-        if indent_unit.is_none() && indent_len > 0 {
-            indent_unit = Some(indent_len);
+        // --- ディレクトリ判定と名前抽出 ---
+        let (content, is_explicit_dir) =
+            if !temp_content.contains("->") && temp_content.contains('/') {
+                let base = temp_content.split('/').next().unwrap_or("").trim();
+                (base.to_string(), true)
+            } else {
+                (temp_content.to_string(), temp_content.ends_with('/'))
+            };
+
+        let mut has_children = false;
+        if let Some((_, next_line)) = iter.peek() {
+            let next_clean = next_line.replace('│', "").replace('├', "").replace('└', "").replace('─', "");
+            let next_raw_indent = next_clean.len() - next_clean.trim_start().len();
+            if next_raw_indent > raw_indent_len {
+                has_children = true;
+            }
         }
 
-        // 1レベルあたりの幅がわかれば割る、わからなければ0 ( トップレベル )
-        let depth = match indent_unit {
-            Some(unit) if unit > 0 => indent_len / unit,
-            _ => 0,
-        };
-
-        let is_dir = trimmed.ends_with('/');
-
-        // シンボリックリンクの判定
-        let node_type = if trimmed.contains("->") {
-            let parts: Vec<&str> = trimmed.split("->").map(|s| s.trim()).collect();
-            let name = parts[0].to_string();
-            let target = parts.get(1).unwrap_or(&"").to_string();
-            (name, NodeType::Symlink { target })
+        let (name, node_type) = if content.contains("->") {
+            let parts: Vec<&str> = content.split("->").map(|s| s.trim()).collect();
+            let n = parts[0].trim_end_matches('/').trim().to_string();
+            let t = parts.get(1).unwrap_or(&"").to_string();
+            (n, NodeType::Symlink { target: t })
         } else {
-            let name = trimmed.trim_end_matches('/').to_string();
-            let n_type = if is_dir {
+            let n_type = if is_explicit_dir || has_children {
                 NodeType::Directory
             } else {
                 NodeType::File
             };
-            (name, n_type)
+            (content, n_type)
         };
 
-        let (name, node_type) = node_type;
-
-        // 2. パス解決ロジック (ディレクトリスタック)
-        while let Some((stack_depth, _)) = stack.last() {
-            if *stack_depth >= depth {
-                stack.pop();
+        // --- パス解決 ---
+        while let Some((d, _)) = path_stack.last() {
+            if *d >= depth {
+                path_stack.pop();
             } else {
                 break;
             }
         }
 
-        let mut current_path = if let Some((_, parent_path)) = stack.last() {
+        let mut full_path = if let Some((_, parent_path)) = path_stack.last() {
             parent_path.clone()
         } else {
             PathBuf::new()
         };
-        current_path.push(&name);
+        full_path.push(&name);
 
-        let mut node = Node::new(name.clone(), depth, node_type);
-        node.path = current_path.clone();
-
-        if let NodeType::Directory = node.node_type {
-            stack.push((depth, current_path));
+        if let NodeType::Directory = node_type {
+            path_stack.push((depth, full_path.clone()));
         }
 
-        nodes.push(node);
+        nodes.push(Node {
+            name,
+            depth,
+            node_type,
+            path: full_path,
+        });
     }
     nodes
 }
